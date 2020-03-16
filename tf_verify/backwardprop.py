@@ -21,7 +21,7 @@ class VectorVar:
 
 class Term:
 	#vars is a list of VectorVars, cfs is the list of corresponding coefficients, and isAbs is whether term is in absolute value
-	#caseConds is set of case conditions, which are triples, first element represents y vector and second and third represents component of vector
+	#caseConds is set of case conditions, which are tuples, elements are components of vectors
 	def __init__(self, name, vars, isAbs=False, cf=1, caseConds = set([])):
 		self.varArray = vars
 		self.vars = {var.name:var for var in vars}
@@ -139,8 +139,8 @@ def relu(conds, termName, var, comp):
 		term2 = cond2.termNameMap[termName].copy()
 		cond2.termNameMap[termName] = term2
 
-		term1.caseConds.add((var+'_'+str(comp),))
-		term2.caseConds.add(('-'+var+'_'+str(comp),))
+		term1.caseConds.add((str(term2.vars[var].W) + var+'_'+str(comp) + ' + ' + str(term2.vars[var].b),))
+		term2.caseConds.add((str(-1 * term2.vars[var].W) + var+'_'+str(comp) + ' + ' + str(-1 * term2.vars[var].b),))
 		
 		term2.vars[var].W[comp] = 0
 		term2.vars[var].b[comp] = 0
