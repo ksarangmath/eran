@@ -139,8 +139,9 @@ def relu(conds, termName, var, comp):
 		term2 = cond2.termNameMap[termName].copy()
 		cond2.termNameMap[termName] = term2
 
-		term1.caseConds.add((str(term2.vars[var].W) + var+'_'+str(comp) + ' + ' + str(term2.vars[var].b),))
-		term2.caseConds.add((str(-1 * term2.vars[var].W) + var+'_'+str(comp) + ' + ' + str(-1 * term2.vars[var].b),))
+		term1.caseConds.add((str(term2.vars[var].W[comp]) + var+'_'+str(comp) + ' + ' + str(term2.vars[var].b[comp]),))
+		
+		term2.caseConds.add((str(-1 * term2.vars[var].W[comp]) + var+'_'+str(comp) + ' + ' + str(-1 * term2.vars[var].b[comp]),))
 		
 		term2.vars[var].W[comp] = 0
 		term2.vars[var].b[comp] = 0
