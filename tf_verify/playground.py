@@ -23,8 +23,8 @@ print(operations[::-1])
 
 #-------------------------------------------------------------------------------------------------------------------
 conds = collections.deque([])
-y1 = VectorVar(name='y1', dim=3)
-y2 = VectorVar(name='y2', dim=3, cf=-1)
+y1 = VectorVar(name='y1', dim=2)
+y2 = VectorVar(name='y2', dim=2, cf=-1)
 term1 = Term(name='y',vars=[y1,y2], isAbs=True, cf=-1)
 x1 = VectorVar(name='x1', dim=1)
 x2 = VectorVar(name='x2', dim=1, cf=-1)
@@ -39,14 +39,14 @@ reluLayerTerm(conds, 'y')
 
 print('BiasAdd:')
 
-dummy = np.array([1,3,4])
+dummy = np.array([1,3])
 biasAddTerm(conds, 'y', dummy)
 # biasAddTerm(conds, 'y', resources[-2]['deeppoly'][0])
 # print(condsToString(conds))
 # print(len(conds))
 
 print('Matmul:')
-dummy = np.array([[4,2,8],[7,1,8],[2,9,0]])
+dummy = np.array([[4,2],[2,9]])
 matmulTerm(conds, 'y', dummy)
 # matmulTerm(conds, 'y', resources[-3]['deeppoly'][0])
 print('DONE')

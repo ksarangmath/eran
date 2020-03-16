@@ -21,8 +21,8 @@ class VectorVar:
 
 class Term:
 	#vars is a list of VectorVars, cfs is the list of corresponding coefficients, and isAbs is whether term is in absolute value
-	#caseConds is set of case conditions, which are tuples, elements are components of vectors
-	def __init__(self, name, vars, isAbs=False, cf=1, caseConds = set([])):
+	#caseConds is set of case conditions, which are triples, first element is W, second element is var, third element is b
+	def __init__(self, name, vars, isAbs=False, cf=1, caseConds = []):
 		self.varArray = vars
 		self.vars = {var.name:var for var in vars}
 		self.cf = cf
@@ -88,10 +88,10 @@ def condsToString(conds):
 			for varCond in term.caseConds:
 				termConds += ' ^ ('
 				
-				for l in range(len(varCond)):
-					if l != 0:
+				for l,c in enumerate(varCond):
+					if l != 0 and l % 3 != 1:
 						termConds += ' + '
-					termConds += varCond[l]
+					termConds += str(c)
 					# if varCond[l] < 0:
 					# 	termConds += '-'+ varCond[0] + '_' + str((varCond[l]+1)*-1)
 					# else:
@@ -103,10 +103,10 @@ def condsToString(conds):
 		s += termConds
 		print(s)
 
-def matmul(conds, termName, var, W):
-	for cond in conds:
-		cond.termNameMap[termName].vars[var].W = cond.termNameMap[termName].vars[var].W.dot(W)
-		cond.termNameMap[termName].vars[var].dim = cond.termNameMap[termName].vars[var].W.shape[0]
+# def matmul(conds, termName, var, W):
+# 	for cond in conds:
+# 		cond.termNameMap[termName].vars[var].W = cond.termNameMap[termName].vars[var].W.dot(W)
+# 		cond.termNameMap[termName].vars[var].dim = cond.termNameMap[termName].vars[var].W.shape[0]
 
 
 def matmulTerm(conds, termName, W):
@@ -114,16 +114,26 @@ def matmulTerm(conds, termName, W):
 		for var in cond.termNameMap[termName].vars:
 			cond.termNameMap[termName].vars[var].W = cond.termNameMap[termName].vars[var].W.dot(W)
 			cond.termNameMap[termName].vars[var].dim = cond.termNameMap[termName].vars[var].W.shape[0]
+			for i in range(len(cond.termNameMap[termName].caseConds)):
+				if cond.termNameMap[termName].caseConds[i][1] == var:
+					cond.termNameMap[termName].caseConds[i][0] = cond.termNameMap[termName].caseConds[i][0].dot(W)
+			#this would be a place where turning caseConds into a map with var as key would be more efficient
 
 
-def biasAdd(conds, termName, var, b):
-	for cond in conds:
-		cond.termNameMap[termName].vars[var].b = cond.termNameMap[termName].vars[var].b + cond.termNameMap[termName].vars[var].W.dot(b)
+# def biasAdd(conds, termName, var, b):
+# 	for cond in conds:
+# 		cond.termNameMap[termName].vars[var].b = cond.termNameMap[termName].vars[var].b + cond.termNameMap[termName].vars[var].W.dot(b)
 
 def biasAddTerm(conds, termName, b):
 	for cond in conds:
 		for var in cond.termNameMap[termName].vars:
 			cond.termNameMap[termName].vars[var].b = cond.termNameMap[termName].vars[var].b + cond.termNameMap[termName].vars[var].W.dot(b)
+			for i in range(len(cond.termNameMap[termName].caseConds)):
+				if cond.termNameMap[termName].caseConds[i][1] == var:
+					cond.termNameMap[termName].caseConds[i][2] = cond.termNameMap[termName].caseConds[i][2] + cond.termNameMap[termName].caseConds[i][0].dot(b)
+			
+			#this would be a place where turning caseConds into a map with var as key would be more efficient
+
 
 #comp is component of vectorVar to apply relu to
 def relu(conds, termName, var, comp):
@@ -139,9 +149,8 @@ def relu(conds, termName, var, comp):
 		term2 = cond2.termNameMap[termName].copy()
 		cond2.termNameMap[termName] = term2
 
-		term1.caseConds.add((str(term2.vars[var].W[comp]) + var+'_'+str(comp) + ' + ' + str(term2.vars[var].b[comp]),))
-		
-		term2.caseConds.add((str(-1 * term2.vars[var].W[comp]) + var+'_'+str(comp) + ' + ' + str(-1 * term2.vars[var].b[comp]),))
+		term1.caseConds.append([np.copy(term1.vars[var].W[comp]),var,np.copy(term1.vars[var].b[comp])])
+		term2.caseConds.append([np.copy(term2.vars[var].W[comp] * -1),var,np.copy(term2.vars[var].b[comp] * -1)])
 		
 		term2.vars[var].W[comp] = 0
 		term2.vars[var].b[comp] = 0
