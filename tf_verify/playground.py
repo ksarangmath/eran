@@ -7,19 +7,19 @@ import collections
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-model, _, means, stds = read_tensorflow_net('convSmallRELU__Point.pyt', 784,
+model, _, means, stds = read_tensorflow_net('mnist_conv_maxpool.tf', 784,
                                             False)  # first param is filename, second is num of pixels, third is trained with pytorch
 
 translator = TFTranslator(model, False)  # second param indicates model is not onnx
 operations, resources = translator.translate()
-# print(operations)
+# print(resources[7]['deeppoly'])
 
-# print(resources[4]['deeppoly'][0][0][0])
 
-# for i in range(len(operations)):5
+
+# for i in range(len(operations)):
 #     print(resources[i]['deeppoly'])
 #     print(operations[i])
-#
+
 # print(operations[::-1])
 
 # W = np.array([[[[1,2]],[[0,5]]],[[[-1,2]],[[2,7]]]])
@@ -30,7 +30,9 @@ operations, resources = translator.translate()
 # conv2DLayerTerm(stride, W, xdim, ydim)
 # conv2DLayerTerm(resources[1]['deeppoly'][2], resources[1]['deeppoly'][0], resources[1]['deeppoly'][1], resources[1]['deeppoly'][-1])
 
-
+inputDim = [4,4,1]
+poolDim = [2,2]
+maxpoolLayerTerm(poolDim, inputDim)
 
 
 # -------------------------------------------------------------------------------------------------------------------

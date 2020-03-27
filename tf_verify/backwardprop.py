@@ -105,6 +105,9 @@ def condsToString(conds):
 # 		cond.termNameMap[termName].vars[var].dim = cond.termNameMap[termName].vars[var].W.shape[0]
 
 
+
+#for each of these transformations, make sure var dim changes (not completed)
+
 def matmulTerm(conds, termName, W):
     for cond in conds:
         for var in cond.termNameMap[termName].vars:
@@ -131,6 +134,8 @@ def biasAddTerm(conds, termName, b):
                                                                  cond.termNameMap[termName].caseConds[i][0].dot(b)
 
         # this would be a place where turning caseConds into a map with var as key would be more efficient
+
+
 
 #all of the relu methods are not optimized to work together, loops through conds many more times than needed
 # comp is component of vectorVar to apply relu to
@@ -201,8 +206,64 @@ def conv2DLayerTerm(stride, W, xdim=None, ydim=None, termName=None, conds=None):
                 if cond.termNameMap[termName].caseConds[i][1] == var:
                     cond.termNameMap[termName].caseConds[i][0] = cond.termNameMap[termName].caseConds[i][0].dot(reshapedW)
 
-def maxPoolLayerTerm():
-    
+#inspired by ELINA's maxpool_approx
+def maxpoolLayerTerm(poolDim, inputDim, termName, conds):
+    outputDim = [inputDim[0]//poolDim[0], inputDim[1]//poolDim[1], inputDim[2]]
+    o12 = outputDim[1] * outputDim[2]
+    i12 = inputDim[1] * inputDim[2]
+    numOut = outputDim[0] * outputDim[1] * outputDim[2]
+    W_mp = np.zeros((inputDim[0] * i12, inputDim[0] * i12))
+    # reshapedOrder = np.zeros(len(W_mp))
+    counter = 0
+    for outPos in range(numOut):
+        outX = outPos // o12
+        outY = (outPos-outX*o12) // outputDim[2]
+        outZ = outPos - outX * o12 - outY * outputDim[2]
+        inpX = outX * poolDim[0]
+        inpY = outY * poolDim[1]
+        inpZ = outZ
+        inpPos = inpX*i12 + inpY*inputDim[2] + inpZ
+        for xShift in range(poolDim[0]):
+            for yShift in range(poolDim[1]):
+                poolCurrDim = inpPos + xShift*i12 + yShift*inputDim[2]
+                W_mp[counter][poolCurrDim] = 1
+                # reshapedOrder[counter] = poolCurrDim
+                counter += 1
+
+    for i in range(len(conds)):
+        cond = conds.pop()
+        for var in cond.termNameMap[termName].vars:
+            maxpoolHelper(maxpoolConds, np.array([]), W_mp, poolDim, 0, np.identity(inputDim[0] * i12), cond, termName, var)
+
+
+def maxpoolHelper(maxpoolConds, caseConds, W_mp, poolDim, depth, maxMatrix, cond, termName, var):
+    if depth == len(W_mp) // (poolDim[0] * poolDim[1]):
+        W = maxMatrix.dot(W_mp)
+        newCond = Condition(cond.termNameMap.values())
+        newTerm = newCond.termNameMap[termName].copy()
+        newCond.termNameMap[termName] = newTerm
+
+        #I have to fix the dimension changes in each of the backwards transformations
+        # dim = term1.vars[var].dim
+
+        for i in range(len(caseConds)):
+            for j in range(1,len(caseConds[0])):
+                newTerm.caseConds.append([np.identity(len(W[0]))[caseConds[i][0]], var, 0, np.identity(len(W[0]))[caseConds[i][j]], var, 0])  #find a better way to get component of identity matrix, same with relu transformation
+
+        newTerm.vars[var].W = newTerm.vars[var].W.dot(W)
+        maxpoolConds.appendleft(newCond)
+        return
+
+    for i in range(poolDim[0]*poolDim[1]):
+        pool = np.array([1,1,1,1]) * depth * poolDim[0] * poolDim[1] + np.array([0,1,2,3])
+        newConds = np.append(pool[i], np.delete(pool, i))
+        if len(caseConds) == 0:
+            maxpoolHelper(maxpoolConds, np.vstack((newConds,)), W_mp, poolDim, depth + 1, np.delete(maxMatrix, newConds[1:]), cond, termName, var)
+        else:
+            maxpoolHelper(maxpoolConds, np.vstack((caseConds, newConds)), W_mp, poolDim, depth + 1, np.delete(maxMatrix, newConds[1:]), cond, termName, var)
+
+
+
 
 
 
